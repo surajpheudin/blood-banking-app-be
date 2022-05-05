@@ -1,10 +1,11 @@
 from django.urls import path
 
 from .views import RegisterUserView, GetUsersView, GetUserDetailView, LoginAuthToken, IsLoginView, ChangePasswordView, \
-    SendPasswordResetEmailView, UserPasswordResetView
+    SendPasswordResetEmailView, UserPasswordResetView, SendEmailVerificationCodeView
 
 urlpatterns = [
     path("register/", RegisterUserView.as_view()),
+    path("verify-email/", SendEmailVerificationCodeView.as_view()),
     path("users/", GetUsersView.as_view()),
     path("user/<int:pk>/", GetUserDetailView.as_view()),
     path("login/", LoginAuthToken.as_view()),

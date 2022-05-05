@@ -56,3 +56,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username + ": " + self.email
+
+
+class EmailToken(models.Model):
+    email = models.EmailField('email address', unique=True)
+    token = models.IntegerField()
+
+    REQUIRED_FIELDS = ['email', 'token']
+
+    def __str__(self):
+        return self.email

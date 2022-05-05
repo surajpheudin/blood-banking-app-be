@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import send_mail
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
@@ -6,34 +7,101 @@ from django.utils.encoding import smart_str, force_bytes, DjangoUnicodeDecodeErr
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
-from .models import CustomUser
-from .utils import Util
+from .models import CustomUser, EmailToken
+from .utils import Util, generate_random_digits
 
 
-class ResisterUserSerializer(serializers.ModelSerializer):
-    confirm_password = serializers.CharField(write_only=True)
-
-    class Meta:
-        model = CustomUser
-        fields = ['email', 'username', 'fullname', 'password', 'confirm_password']
-        extra_kwargs = {'password': {'write_only': True}}
+class SendEmailVerificationCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField(max_length=255)
 
     def validate(self, attrs):
-        password = attrs.get("password")
-        confirm_password = attrs.get("confirm_password")
+        email = attrs.get("email")
 
-        if password != confirm_password:
-            raise serializers.ValidationError("Password and confirm passsword does not match.")
+        # Check is email is already registered
+        authors = CustomUser.objects.filter(email=email)
+        if len(authors) > 0:
+            raise serializers.ValidationError("Provided email is already registered in our system.")
+
+        # Check if verification code is already sent
+        email_token = EmailToken.objects.filter(email=email)
+        if len(email_token) > 0:
+            for i in email_token:
+                i.delete()
+
+        # Save new email_token instance
+        token = generate_random_digits(6)
+        body = "We received a request to verify your email. Enter this code to complete the verification " \
+               "process. " + str(
+            token)
+        data = {
+            "subject": "Verify Email",
+            "body": body,
+            "to_email": email
+        }
+        email_token = EmailToken(
+            email=email,
+            token=token
+        )
+        email_token.save()
+
+        # Send email with verification code
+        try:
+            Util.send_mail(data)
+        except Exception:
+
+            # Delete email_token_instace if email was not sent
+            try:
+                email_token = EmailToken.objects.get(email=email)
+                email_token.delete()
+            except ObjectDoesNotExist:
+                pass
+
+            raise serializers.ValidationError("Could not send the mail")
 
         return attrs
 
     def create(self, validated_data):
+        pass
+
+    def update(self, instance, validated_data):
+        pass
+
+
+class ResisterUserSerializer(serializers.ModelSerializer):
+    confirm_password = serializers.CharField(write_only=True)
+    token = serializers.IntegerField(required=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['email', 'username', 'fullname', 'password', 'confirm_password', 'token']
+        extra_kwargs = {'password': {'write_only': True}}
+
+    def validate(self, attrs):
+        token = attrs.get("token")
+        email = attrs.get("email")
+
+        try:
+            email_token = EmailToken.objects.get(email=email, token=token)
+            email_token.delete()
+
+            password = attrs.get("password")
+            confirm_password = attrs.get("confirm_password")
+
+            if password != confirm_password:
+                raise serializers.ValidationError("Password and confirm passsword does not match.")
+
+            return attrs
+
+        except ObjectDoesNotExist:
+            raise serializers.ValidationError("Email verification token does not match")
+
+    def create(self, validated_data):
         validated_data.pop("confirm_password")
+        validated_data.pop("token")
         return CustomUser.objects.create_user(**validated_data)
 
 
 class GetUserSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = CustomUser
         fields = ['id', 'email', 'username', 'fullname']
@@ -167,4 +235,3 @@ class UserPasswordResetSerializer(serializers.Serializer):
         except DjangoUnicodeDecodeError as indentifier:
             PasswordResetTokenGenerator().check_token(user, token)
             raise serializers.ValidationError("Token is not valid or expired")
-
