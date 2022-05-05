@@ -12,7 +12,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"email\": \"ff.pheudinsuraj@gmail.com\",\r\n    \"username\": \"ffsuraj\",\r\n    \"fullname\": \"Suraj Limbu\",\r\n    \"password\": \"adminadmin\",\r\n    \"confirm_password\": \"adminadmin\"\r\n\r\n}",
+					"raw": "{\r\n    \"email\": \"pheudinsuraj1@gmail.com\",\r\n    \"username\": \"suraj_suraj\",\r\n    \"fullname\": \"Suraj Limbu\",\r\n    \"password\": \"adminadmin\",\r\n    \"confirm_password\": \"adminadmin\",\r\n    \"token\": 926265\r\n}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -27,6 +27,68 @@
 					"path": [
 						"auth",
 						"register",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Profile",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"fullname\": \"Suraj Pheudin\",\r\n    \"username\": \"suraj8\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{backend_service}}/auth/update-profile/",
+					"host": [
+						"{{backend_service}}"
+					],
+					"path": [
+						"auth",
+						"update-profile",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Verify Email",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"email\": \"pheudinsuraj1@gmail.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{backend_service}}/auth/verify-email/",
+					"host": [
+						"{{backend_service}}"
+					],
+					"path": [
+						"auth",
+						"verify-email",
 						""
 					]
 				}

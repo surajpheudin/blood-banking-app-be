@@ -235,3 +235,20 @@ class UserPasswordResetSerializer(serializers.Serializer):
         except DjangoUnicodeDecodeError as indentifier:
             PasswordResetTokenGenerator().check_token(user, token)
             raise serializers.ValidationError("Token is not valid or expired")
+
+
+class UpdateProfileSerializer(serializers.Serializer):
+    fullname = serializers.CharField()
+    username = serializers.CharField()
+
+    def create(self, validated_data):
+        pass
+
+    def update(self, instance, validated_data):
+        instance.fullname = validated_data.get('fullname', instance.fullname)
+        instance.username = validated_data.get('username', instance.username)
+
+        instance.save()
+        return instance
+
+

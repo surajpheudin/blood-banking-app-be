@@ -6,7 +6,8 @@ from rest_framework.views import APIView
 
 from .models import CustomUser
 from .serializers import GetUserSerializer, ResisterUserSerializer, AuthTokenSerializer, ChangePasswordSerializer, \
-    SendPasswordResetEmailSerializer, UserPasswordResetSerializer, SendEmailVerificationCodeSerializer
+    SendPasswordResetEmailSerializer, UserPasswordResetSerializer, SendEmailVerificationCodeSerializer, \
+    UpdateProfileSerializer
 
 
 class SendEmailVerificationCodeView(APIView):
@@ -35,6 +36,35 @@ class RegisterUserView(APIView):
             "message": serializer.errors,
             "data": {}
         })
+
+
+class UpdateProfileView(APIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def put(self, request, *args, **kwargs):
+        user = self.request.user
+
+        username = request.data.get("username")
+
+        duplicate_user = CustomUser.objects.filter(username=username)
+
+        if len(duplicate_user) > 0:
+            response = {
+                'message': 'Username already exist',
+            }
+            return Response(status=status.HTTP_400_BAD_REQUEST, data=response)
+
+        serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
+
+        serializer.is_valid(raise_exception=True)
+
+        serializer.save()
+
+        response = {
+            'message': 'Profile updated successfully',
+        }
+
+        return Response(status=status.HTTP_201_CREATED, data=response)
 
 
 class GetUsersView(APIView):
