@@ -242,6 +242,7 @@ class UserPasswordResetSerializer(serializers.Serializer):
 class UpdateProfileSerializer(serializers.Serializer):
     fullname = serializers.CharField()
     username = serializers.CharField()
+    available = serializers.BooleanField()
 
     def create(self, validated_data):
         pass
@@ -249,6 +250,7 @@ class UpdateProfileSerializer(serializers.Serializer):
     def update(self, instance, validated_data):
         instance.fullname = validated_data.get('fullname', instance.fullname)
         instance.username = validated_data.get('username', instance.username)
+        instance.available = validated_data.get('available', instance.available)
 
         instance.save()
         return instance
