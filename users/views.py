@@ -75,16 +75,19 @@ class GetUsersView(APIView):
         page_number = request.query_params.get('page_number', 1)
         page_size = request.query_params.get('page_size', 10)
         address = request.query_params.get('address')
-        blood_group = request.query_params.get('blood_group')
+        blood_group_query = request.query_params.get('blood_group')
+
+        if blood_group_query:
+            blood_group = blood_group_query.split(",")
 
         try:
-            if blood_group and address:
-                users = CustomUser.objects.filter(blood_group=blood_group, address=address)
-                total_count = CustomUser.objects.filter(blood_group=blood_group, address=address).count()
+            if blood_group_query and address:
+                users = CustomUser.objects.filter(blood_group__in=blood_group, address=address)
+                total_count = CustomUser.objects.filter(blood_group__in=blood_group, address=address).count()
 
-            elif blood_group:
-                users = CustomUser.objects.filter(is_staff=False, available=True, blood_group=blood_group)
-                total_count = CustomUser.objects.filter(is_staff=False, available=True, blood_group=blood_group).count()
+            elif blood_group_query:
+                users = CustomUser.objects.filter(is_staff=False, available=True, blood_group__in=blood_group)
+                total_count = CustomUser.objects.filter(is_staff=False, available=True, blood_group__in=blood_group).count()
 
             elif address:
                 users = CustomUser.objects.filter(is_staff=False, available=True, address=address)
@@ -105,7 +108,7 @@ class GetUsersView(APIView):
         response = {
             'message': 'List of users fetched successfully',
             'data': serializer.data,
-            "total_count" : total_count
+            "total_count": total_count
         }
 
         return Response(status=status.HTTP_200_OK, data=response)
