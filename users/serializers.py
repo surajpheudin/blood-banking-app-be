@@ -1,6 +1,5 @@
 from django.contrib.auth import authenticate
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.mail import send_mail
 from rest_framework import serializers
 from django.utils.translation import gettext_lazy as _
 from django.utils.encoding import smart_str, force_bytes, DjangoUnicodeDecodeError
@@ -30,6 +29,12 @@ class SendEmailVerificationCodeSerializer(serializers.Serializer):
 
         # Save new email_token instance
         token = generate_random_digits(6)
+        email_token = EmailToken(
+            email=email,
+            token=token
+        )
+        email_token.save()
+
         body = "We received a request to verify your email. Enter this code to complete the verification " \
                "process. " + str(
             token)
@@ -38,17 +43,11 @@ class SendEmailVerificationCodeSerializer(serializers.Serializer):
             "body": body,
             "to_email": email
         }
-        email_token = EmailToken(
-            email=email,
-            token=token
-        )
-        email_token.save()
 
         # Send email with verification code
         try:
             Util.send_mail(data)
-        except Exception:
-
+        except Exception as e:
             # Delete email_token_instace if email was not sent
             try:
                 email_token = EmailToken.objects.get(email=email)
@@ -68,12 +67,13 @@ class SendEmailVerificationCodeSerializer(serializers.Serializer):
 
 
 class ResisterUserSerializer(serializers.ModelSerializer):
+
     confirm_password = serializers.CharField(write_only=True)
     token = serializers.IntegerField(required=True)
 
     class Meta:
         model = CustomUser
-        fields = ['email', 'username', 'fullname', 'password', 'confirm_password', 'token']
+        fields = ['email', 'username', 'fullname', 'password', 'confirm_password', 'token', 'contact', 'blood_group', 'address']
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate(self, attrs):
@@ -81,6 +81,7 @@ class ResisterUserSerializer(serializers.ModelSerializer):
         email = attrs.get("email")
 
         try:
+
             email_token = EmailToken.objects.get(email=email, token=token)
             email_token.delete()
 
@@ -93,6 +94,7 @@ class ResisterUserSerializer(serializers.ModelSerializer):
             return attrs
 
         except ObjectDoesNotExist:
+
             raise serializers.ValidationError("Email verification token does not match")
 
     def create(self, validated_data):
@@ -104,7 +106,7 @@ class ResisterUserSerializer(serializers.ModelSerializer):
 class GetUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'username', 'fullname']
+        fields = ['id', 'email', 'username', 'fullname', "address", "contact", "last_donation", "blood_group", "available"]
 
 
 class AuthTokenSerializer(serializers.Serializer):

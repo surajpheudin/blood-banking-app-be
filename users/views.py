@@ -1,3 +1,4 @@
+from django.core.paginator import Paginator
 from rest_framework import status, permissions
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -23,7 +24,9 @@ class SendEmailVerificationCodeView(APIView):
 
 class RegisterUserView(APIView):
     def post(self, request, format=None):
+        print("data", request.data)
         serializer = ResisterUserSerializer(data=request.data)
+
         if serializer.is_valid(raise_exception=True):
             user = serializer.save()
             return Response(status=status.HTTP_201_CREATED, data={
@@ -69,17 +72,40 @@ class UpdateProfileView(APIView):
 
 class GetUsersView(APIView):
     def get(self, request, *args, **kwargs):
+        page_number = request.query_params.get('page_number', 1)
+        page_size = request.query_params.get('page_size', 10)
+        address = request.query_params.get('address')
+        blood_group = request.query_params.get('blood_group')
+
         try:
-            users = CustomUser.objects.filter(is_staff=False)
+            if blood_group and address:
+                users = CustomUser.objects.filter(blood_group=blood_group, address=address)
+                total_count = CustomUser.objects.filter(blood_group=blood_group, address=address).count()
+
+            elif blood_group:
+                users = CustomUser.objects.filter(is_staff=False, available=True, blood_group=blood_group)
+                total_count = CustomUser.objects.filter(is_staff=False, available=True, blood_group=blood_group).count()
+
+            elif address:
+                users = CustomUser.objects.filter(is_staff=False, available=True, address=address)
+                total_count = CustomUser.objects.filter(is_staff=False, available=True, address=address).count()
+
+            else:
+                users = CustomUser.objects.filter(is_staff=False, available=True)
+                total_count = CustomUser.objects.filter(is_staff=False, available=True).count()
+
         except Exception:
             response = dict(message='Failed to fetched users', data=[])
             return Response(status=status.HTTP_400_BAD_REQUEST, data=response)
 
-        serializer = GetUserSerializer(users, many=True)
+        paginator = Paginator(users, page_size)
+
+        serializer = GetUserSerializer(paginator.page(page_number), many=True)
 
         response = {
             'message': 'List of users fetched successfully',
-            'data': serializer.data
+            'data': serializer.data,
+            "total_count" : total_count
         }
 
         return Response(status=status.HTTP_200_OK, data=response)
